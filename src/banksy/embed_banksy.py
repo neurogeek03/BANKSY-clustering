@@ -95,7 +95,6 @@ def create_nbr_matrix(adata,
                       banksy_dict: dict,
                       nbr_weight_decay: str,
                       max_m: int,
-                      center: bool = True,
                       variance_balance: bool = False,
                       verbose: bool = True):
     '''Computes the neighbour averaged feature matrices'''
@@ -139,37 +138,17 @@ def create_nbr_matrix(adata,
     for m in range(1, max_m + 1):
 
         weights = banksy_dict[nbr_weight_decay]["weights"][m]
-        weights = weights.copy()
+        weights_abs = weights.copy()
 
-        #weights_abs.data = np.absolute(weights_abs.data)
-        weights_data = weights.data
-        #nbr_avgs = weights_abs @ X_dense
+        weights_abs.data = np.absolute(weights_abs.data)
+        nbr_avgs = weights_abs @ X_dense
         nbr_mat = np.zeros(adata.X.shape, )
 
-        # for n in range(weights.indptr.shape[0] - 1):
-        #     ind_temp = weights.indices[weights.indptr[n]:weights.indptr[n + 1]]
-        #     weight_temp = weights.data[weights.indptr[n]:weights.indptr[n + 1]]
-        #     zerod = X_dense[ind_temp, :] - nbr_avgs[n, :]
-        #     nbr_mat[n, :] = np.absolute(np.expand_dims(weight_temp, axis=0) @ zerod)
-        
-        ### Edit: Update Sep 2024 to match Banksy R
-
-
-        ## use function to avoid -> UnboundLocalError: local variable 'fscale_exp' referenced before assignment
-        def fscale_exp (X_dense, ind_temp):
-            fscaled_exp = X_dense[ind_temp,] - np.mean(X_dense[ind_temp,],
-                                                      axis=0)  # raw expression - mean of expression of each cell in the n-cell neighborhood
-            return fscaled_exp
-
-
         for n in range(weights.indptr.shape[0] - 1):
-            #weights indices corresponds to cell index
             ind_temp = weights.indices[weights.indptr[n]:weights.indptr[n + 1]]
-
-            if center:
-                nbr_mat[n, :] = np.absolute(np.dot(weights_data[weights.indptr[n]:weights.indptr[n + 1]], fscale_exp(X_dense, ind_temp)))  # cell expression now contain AGF weights
-            else:
-                nbr_mat[n, :] = np.absolute(np.dot(weights_data[weights.indptr[n]:weights.indptr[n + 1]], X_dense[ind_temp,]))
+            weight_temp = weights.data[weights.indptr[n]:weights.indptr[n + 1]]
+            zerod = X_dense[ind_temp, :] - nbr_avgs[n, :]
+            nbr_mat[n, :] = np.absolute(np.expand_dims(weight_temp, axis=0) @ zerod)
 
         nbr_matrices[m] = nbr_mat
         gc.collect()

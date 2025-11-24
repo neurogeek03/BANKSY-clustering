@@ -1,12 +1,6 @@
 import re, gc, time
 import pandas as pd
-
-# Use IPython display if available, otherwise fall back to print
-try:
-    from IPython.display import display
-except ImportError:
-    display = print
-
+from IPython.display import display
 from banksy.main import LeidenPartition
 from banksy.labels import Label, match_label_series
 import anndata
